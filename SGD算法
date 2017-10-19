@@ -96,7 +96,6 @@ class Network(object):
 		return sum(int(x==y) for (x,y) in test_results)
 
 if __name__=="__main__":
-	'''
 	sizes=[784,30,10]
 	training_data,test_data=mnist_loader.load_data_wrapper()
 	print(training_data[0][0].shape,training_data[0][1].shape)
@@ -115,7 +114,7 @@ if __name__=="__main__":
 	net=Network(sizes)
 	w,b=net.SGD(training_data,5,1,0.002,test_data)
 
-	
+	'''
 	'''x=[1,2,3]
 	x=np.expand_dims(x,1)
 	y=np.random.rand(3)
