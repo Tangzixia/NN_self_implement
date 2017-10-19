@@ -1,0 +1,130 @@
+#-*-coding=utf-8-*-
+import numpy as np
+import tensorflow as tf
+import random
+import mnist_loader
+#sizes=[3,4,3]
+#w=[[4*3],[3*4]]
+#b=[[4*1],[3*1]]
+#a=[[4,],[3,]]
+#z=[[4,],[3,]]
+
+def sigmoid(z):
+	return 1.0/(1.0+np.exp(-z))
+
+def sigmoid_prime(z):
+	return sigmoid(z)*(1-sigmoid(z))
+
+class Network(object):
+	def __init__(self,sizes):
+		self.num_layers=len(sizes)
+		self.sizes=sizes
+		self.weights=[np.random.rand(j,i) for i,j in zip(sizes[:-1],sizes[1:])]
+		self.biases=[np.random.rand(j,1) for j in sizes[1:]]
+
+	def feedforward(self,a):
+		for w,b in zip(self.weights,self.biases):
+			a=sigmoid(np.dot(w,a)+b)
+		return a
+	def SGD(self,training_data,epochs,mini_batch_size,eta,test_data=None):
+		if test_data:
+			n_test=len(test_data)
+		n=len(training_data)
+
+		for j in xrange(epochs):
+			random.shuffle(training_data)
+			mini_batches=[training_data[k:k+mini_batch_size]
+				for k in xrange(0,n,mini_batch_size)]
+			#print(mini_batches)
+			for mini_batch in mini_batches:
+				self.update_mini_batch(mini_batch,eta)
+			
+			if test_data:
+				print("Epoch:{0},acc:{1}/{2}".format(j,self.evaluate(test_data),n_test))
+			else:
+				print("finish")
+		#return (self.weights,self.biases)
+
+	def update_mini_batch(self,mini_batch,eta):
+		deriv_w_mb=[np.zeros(w.shape) for w in self.weights]
+		deriv_b_mb=[np.zeros(b.shape) for b in self.biases]
+		for x,y in mini_batch:
+			deriv_w,deriv_b=self.backprop(x,y)
+
+			deriv_w_mb=[w+dw for w,dw in zip(deriv_w_mb,deriv_w)]
+			deriv_b_mb=[b+db for b,db in zip(deriv_b_mb,deriv_b)]
+
+		self.weights=[w-(eta/len(mini_batch))*nw 
+			for w,nw in zip(self.weights,deriv_w_mb)]
+		self.biases=[b-(eta/len(mini_batch))*nb
+			for b,nb in zip(self.biases,deriv_b_mb)]
+
+	def backprop(self,x,y):
+		deriv_b=[np.zeros(b.shape) for b in self.biases]
+		deriv_w=[np.zeros(w.shape) for w in self.weights]
+
+		a=x
+		a_arr=[x]
+		z_arr=[]
+		for w,b in zip(self.weights,self.biases):
+			#print(np.dot(w,a).shape,b.shape)
+			z=np.dot(w,a)+b
+			z_arr.append(z)
+			a=sigmoid(z)
+			a_arr.append(a)
+
+		#print(a_arr[-1].shape)
+		delta=(a_arr[-1]-y)*sigmoid_prime(z_arr[-1])
+
+		deriv_b[-1]=delta
+		deriv_w[-1]=np.dot(delta,np.transpose(a_arr[-2]))
+
+		for l in xrange(2,self.num_layers):
+			z=z_arr[-l]
+
+
+			delta=np.dot(np.transpose(self.weights[-l+1]),delta)*sigmoid_prime(z)
+			#print(delta.shape,a_arr[-l-1].shape)
+			deriv_b[-l]=delta
+			deriv_w[-l]=np.dot(delta,np.transpose(a_arr[-l-1]))
+
+		return (deriv_w,deriv_b)
+	def evaluate(self,test_data):
+		test_results=[(np.argmax(self.feedforward(x)),y) 
+			for (x,y) in test_data]
+        #return sum(int(x == y) for (x, y) in test_results)
+		return sum(int(x==y) for (x,y) in test_results)
+
+if __name__=="__main__":
+	'''
+	sizes=[784,30,10]
+	training_data,test_data=mnist_loader.load_data_wrapper()
+	print(training_data[0][0].shape,training_data[0][1].shape)
+	net=Network(sizes)
+	net.SGD(training_data,10,20000,0.2,test_data)
+	'''
+	#the model (len(n1_node)*1) format to start with
+	sizes=[3,4,5,6,7,3]
+	training_data=[([[1],[2],[3]],[[1],[0],[0]]),
+		([[4],[5],[6]],[[0],[1],[0]]),
+		([[7],[8],[9]],[[0],[0],[1]])]
+	test_data=[([[10],[11],[12]],0),
+				([[13],[14],[15]],1),
+				([[16],[17],[18]],2)]
+	#def SGD(self,training_data,epochs,mini_batch_size,eta,test_data=None):
+	net=Network(sizes)
+	w,b=net.SGD(training_data,5,1,0.002,test_data)
+
+	
+	'''x=[1,2,3]
+	x=np.expand_dims(x,1)
+	y=np.random.rand(3)
+	y=np.expand_dims(y,1)
+	z=[(x,y)]
+	net1=Network(sizes)
+	(w,b)=net1.backprop(z[0][0],z[0][1])
+	
+	print(w[0].shape,w[1].shape)
+	print(w[0],w[1])
+	print(b[0].shape,b[1].shape)
+	print(b[0],b[1])'''
